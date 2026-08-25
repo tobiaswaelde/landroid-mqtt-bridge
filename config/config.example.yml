@@ -1,0 +1,19 @@
+mqtt:
+  host: mqtt.example.net
+  clientId: '' # Leave empty to generate a UUID at startup.
+  username: mqtt-user
+  password: change-me
+http:
+  port: 3000
+logging:
+  level: log
+instances:
+  - id: garden
+    topic: home/landroid/garden
+    cloud:
+      type: worx
+      email: mower-account@example.com
+      password: change-me
+    mowers:
+      - serial: '20213026710100887292'
+    updateInterval: 60000
