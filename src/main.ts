@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import 'reflect-metadata';
 /**
  * Executes `bootstrap`.
- * @returns Result of type `Promise<void>`.
+ * @returns {Promise<void>} Result.
  */
 async function bootstrap() {
   const { CONFIG } = await import('./config/config');

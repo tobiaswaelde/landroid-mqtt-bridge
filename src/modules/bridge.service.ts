@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { CONFIG, type LandroidConfig } from '~/config/config';
 import type { BridgeInstance } from '~/lib/http-mqtt-bridge';
 import { Landroid } from '~/lib/landroid';
@@ -12,16 +12,16 @@ export class BridgeService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
   /**
    * Creates the class instance.
-   * @param mqtt - Value of type `MqttService`.
+   * @param {MqttService} mqtt The mqtt value.
    */
-  constructor(mqtt: MqttService) {
+  constructor(@Inject(MqttService) mqtt: MqttService) {
     this.instances = CONFIG.instances
       .filter((instance) => instance.enabled)
       .map((instance) => new Landroid(instance as LandroidConfig, mqtt));
   }
   /**
    * Executes `onModuleInit`.
-   * @returns Result of type `void`.
+   * @returns {void} Result.
    */
   onModuleInit() {
     this.instances.forEach((instance) => instance.setup());
@@ -29,7 +29,7 @@ export class BridgeService implements OnModuleInit, OnModuleDestroy {
   }
   /**
    * Executes `onModuleDestroy`.
-   * @returns Result of type `void`.
+   * @returns {void} Result.
    */
   onModuleDestroy() {
     if (this.timer) clearInterval(this.timer);

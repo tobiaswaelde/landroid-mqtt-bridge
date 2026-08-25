@@ -30,7 +30,7 @@ export const commonSchema = z.object({
 });
 /**
  * Executes `configFilePath`.
- * @returns Result of type `string`.
+ * @returns {string} Result.
  */
 export function configFilePath() {
   const index = process.argv.indexOf('--config');
@@ -38,15 +38,15 @@ export function configFilePath() {
 }
 /**
  * Executes `configDirectory`.
- * @returns Result of type `string`.
+ * @returns {string} Result.
  */
 export function configDirectory() {
   return path.dirname(configFilePath());
 }
 /**
  * Executes `loadConfig`.
- * @param schema - Value of type `T`.
- * @returns Result of type `output<T>`.
+ * @param {T} schema The schema value.
+ * @returns {output<T>} Result.
  */
 export function loadConfig<T extends z.ZodType>(schema: T): z.infer<T> {
   const file = configFilePath();

@@ -39,9 +39,9 @@ export class MqttService implements MqttBridgeClient, OnModuleDestroy {
   }
   /**
    * Executes `publish`.
-   * @param topic - Value of type `string`.
-   * @param payload - Value of type `string | number | boolean | null`.
-   * @returns Result of type `void`.
+   * @param {string} topic The topic value.
+   * @param {string | number | boolean | null} payload The payload value.
+   * @returns {void} Result.
    */
   publish(topic: string, payload: string | number | boolean | null) {
     this.client.publish(
@@ -53,9 +53,9 @@ export class MqttService implements MqttBridgeClient, OnModuleDestroy {
   }
   /**
    * Executes `subscribe`.
-   * @param filter - Value of type `string`.
-   * @param handler - Value of type `MqttMessageHandler`.
-   * @returns Result of type `() => void`.
+   * @param {string} filter The filter value.
+   * @param {MqttMessageHandler} handler The handler value.
+   * @returns {() => void} Result.
    */
   subscribe(filter: string, handler: MqttMessageHandler) {
     let handlers = this.subscriptions.get(filter);
@@ -76,7 +76,7 @@ export class MqttService implements MqttBridgeClient, OnModuleDestroy {
   }
   /**
    * Executes `onModuleDestroy`.
-   * @returns Result of type `void`.
+   * @returns {void} Result.
    */
   onModuleDestroy() {
     this.subscriptions.clear();
@@ -84,9 +84,9 @@ export class MqttService implements MqttBridgeClient, OnModuleDestroy {
   }
   /**
    * Executes `dispatch`.
-   * @param topic - Value of type `string`.
-   * @param payload - Value of type `string`.
-   * @returns Result of type `void`.
+   * @param {string} topic The topic value.
+   * @param {string} payload The payload value.
+   * @returns {void} Result.
    */
   private dispatch(topic: string, payload: string) {
     for (const [filter, handlers] of this.subscriptions)
@@ -101,9 +101,9 @@ export class MqttService implements MqttBridgeClient, OnModuleDestroy {
 }
 /**
  * Executes `matches`.
- * @param filter - Value of type `string`.
- * @param topic - Value of type `string`.
- * @returns Result of type `boolean`.
+ * @param {string} filter The filter value.
+ * @param {string} topic The topic value.
+ * @returns {boolean} Result.
  */
 function matches(filter: string, topic: string) {
   const a = filter.split('/'),

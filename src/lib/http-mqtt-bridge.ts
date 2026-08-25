@@ -8,7 +8,7 @@ export interface BridgeInstance {
 }
 /**
  * Executes `HttpMqttBridge`.
- * @typeParam T - Generic type parameter `T`.
+ * @typeParam T Generic type parameter `T`.
  */
 export abstract class HttpMqttBridge<T extends object> implements BridgeInstance {
   protected readonly api: AxiosInstance;
@@ -18,10 +18,10 @@ export abstract class HttpMqttBridge<T extends object> implements BridgeInstance
   private readonly tasks = new Map<string, { interval: number; last: number; task: () => void | Promise<void> }>();
   /**
    * Creates the class instance.
-   * @param cfg - Value of type `T`.
-   * @param mqtt - Value of type `MqttBridgeClient`.
-   * @param scope - Value of type `string`.
-   * @param baseURL - Value of type `string`.
+   * @param {T} cfg The cfg value.
+   * @param {MqttBridgeClient} mqtt The mqtt value.
+   * @param {string} scope The scope value.
+   * @param {string} baseURL The baseURL value.
    */
   protected constructor(
     protected readonly cfg: T,
@@ -34,13 +34,13 @@ export abstract class HttpMqttBridge<T extends object> implements BridgeInstance
   }
   /**
    * Executes `setup`.
-   * @returns Result of type `void`.
+   * @returns {void} Result.
    */
   abstract setup(): void;
   /**
    * Executes `loop`.
-   * @param time - Value of type `number`.
-   * @returns Result of type `void`.
+   * @param {number} time The time value.
+   * @returns {void} Result.
    */
   loop(time: number) {
     for (const task of this.tasks.values())
@@ -51,7 +51,7 @@ export abstract class HttpMqttBridge<T extends object> implements BridgeInstance
   }
   /**
    * Executes `destroy`.
-   * @returns Result of type `void`.
+   * @returns {void} Result.
    */
   destroy() {
     for (const unsubscribe of this.unsubscribers) unsubscribe();
@@ -62,9 +62,9 @@ export abstract class HttpMqttBridge<T extends object> implements BridgeInstance
   }
   /**
    * Executes `subscribe`.
-   * @param topic - Value of type `string`.
-   * @param handler - Value of type `MqttMessageHandler`.
-   * @returns Result of type `() => void`.
+   * @param {string} topic The topic value.
+   * @param {MqttMessageHandler} handler The handler value.
+   * @returns {() => void} Result.
    */
   protected subscribe(topic: string, handler: MqttMessageHandler) {
     const unsubscribe = this.mqtt.subscribe(topic, handler);
@@ -73,18 +73,18 @@ export abstract class HttpMqttBridge<T extends object> implements BridgeInstance
   }
   /**
    * Executes `poll`.
-   * @param key - Value of type `string`.
-   * @param interval - Value of type `number`.
-   * @param task - Value of type `() => void | Promise<void>`.
-   * @returns Result of type `void`.
+   * @param {string} key The key value.
+   * @param {number} interval The interval value.
+   * @param {() => void | Promise<void>} task The task value.
+   * @returns {void} Result.
    */
   protected poll(key: string, interval: number, task: () => void | Promise<void>) {
     this.tasks.set(key, { interval, last: 0, task });
   }
   /**
    * Executes `startRequest`.
-   * @param key - Value of type `string`.
-   * @returns Result of type `AbortController`.
+   * @param {string} key The key value.
+   * @returns {AbortController} Result.
    */
   protected startRequest(key: string) {
     this.requests.get(key)?.abort();
@@ -94,17 +94,17 @@ export abstract class HttpMqttBridge<T extends object> implements BridgeInstance
   }
   /**
    * Executes `finishRequest`.
-   * @param key - Value of type `string`.
-   * @param controller - Value of type `AbortController`.
-   * @returns Result of type `void`.
+   * @param {string} key The key value.
+   * @param {AbortController} controller The controller value.
+   * @returns {void} Result.
    */
   protected finishRequest(key: string, controller: AbortController) {
     if (this.requests.get(key) === controller) this.requests.delete(key);
   }
   /**
    * Executes `cancelRequest`.
-   * @param key - Value of type `string`.
-   * @returns Result of type `void`.
+   * @param {string} key The key value.
+   * @returns {void} Result.
    */
   protected cancelRequest(key: string) {
     this.requests.get(key)?.abort();

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title>Landroid MQTT Bridge</title>
+  <rect width="128" height="128" rx="30" fill="#166534"/>
+  <path fill="#86efac" d="M64 16c22 22 34 40 34 58 0 21-15 38-34 38S30 95 30 74c0-18 12-36 34-58Z"/>
+  <path fill="#14532d" d="M64 34v61M45 56l19 19 19-19" stroke="#14532d" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="45" cy="96" r="8" fill="#fff"/><circle cx="83" cy="96" r="8" fill="#fff"/>
+</svg>

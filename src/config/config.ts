@@ -21,9 +21,9 @@ export const configSchema = commonSchema
   .superRefine((value, ctx) => unique(value.instances, ctx));
 /**
  * Executes `unique`.
- * @param instances - Value of type `{ id: string; topic: string; }[]`.
- * @param ctx - Value of type `$RefinementCtx<unknown>`.
- * @returns Result of type `void`.
+ * @param {{ id: string; topic: string; }[]} instances The instances value.
+ * @param {$RefinementCtx<unknown>} ctx The ctx value.
+ * @returns {void} Result.
  */
 function unique(instances: { id: string; topic: string }[], ctx: z.RefinementCtx) {
   for (const [index, entry] of instances.entries())

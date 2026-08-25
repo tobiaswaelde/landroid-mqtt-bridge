@@ -1,6 +1,6 @@
 # Landroid MQTT Bridge
 
-[![CI](https://github.com/tobiaswaelde/landroid-mqtt-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/tobiaswaelde/landroid-mqtt-bridge/actions/workflows/ci.yml) [![Docs](https://github.com/tobiaswaelde/landroid-mqtt-bridge/actions/workflows/pages.yml/badge.svg)](https://tobiaswaelde.github.io/landroid-mqtt-bridge/) [![Deploy](https://github.com/tobiaswaelde/landroid-mqtt-bridge/actions/workflows/deploy.yml/badge.svg)](https://github.com/tobiaswaelde/landroid-mqtt-bridge/actions/workflows/deploy.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/tobiaswaelde/landroid-mqtt-bridge/ci.yml?style=for-the-badge&label=CI)](https://github.com/tobiaswaelde/landroid-mqtt-bridge/actions/workflows/ci.yml) [![Docs](https://img.shields.io/github/actions/workflow/status/tobiaswaelde/landroid-mqtt-bridge/pages.yml?style=for-the-badge&label=Docs)](https://tobiaswaelde.github.io/landroid-mqtt-bridge/) [![Deploy](https://img.shields.io/github/actions/workflow/status/tobiaswaelde/landroid-mqtt-bridge/deploy.yml?style=for-the-badge&label=Deploy)](https://github.com/tobiaswaelde/landroid-mqtt-bridge/actions/workflows/deploy.yml)
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-tobiaswaelde-FFDD00?style=for-the-badge&logo=buymeacoffee)](https://www.buymeacoffee.com/tobiaswaelde)
 
@@ -46,4 +46,11 @@ Example command:
 mosquitto_pub -h mqtt.example.net -t 'home/landroid/garden/mowers/20213026710100887292/set/json' -m '{"cmd":1}'
 ```
 
-See the [configuration](https://tobiaswaelde.github.io/landroid-mqtt-bridge/configuration), [MQTT contract](https://tobiaswaelde.github.io/landroid-mqtt-bridge/mqtt), [authentication](https://tobiaswaelde.github.io/landroid-mqtt-bridge/authentication), and [deployment guide](https://tobiaswaelde.github.io/landroid-mqtt-bridge/deployment).
+## Documentation
+
+- [Documentation home](https://tobiaswaelde.github.io/landroid-mqtt-bridge/)
+- [Configuration](https://tobiaswaelde.github.io/landroid-mqtt-bridge/configuration)
+- [Authentication](https://tobiaswaelde.github.io/landroid-mqtt-bridge/authentication)
+- [MQTT contract](https://tobiaswaelde.github.io/landroid-mqtt-bridge/mqtt)
+- [Docker deployment](https://tobiaswaelde.github.io/landroid-mqtt-bridge/deployment)
+- [WLED MQTT Bridge for local lighting](https://tobiaswaelde.github.io/wled-mqtt-bridge/)

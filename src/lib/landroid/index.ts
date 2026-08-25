@@ -8,74 +8,16 @@ import { ENV } from '~/config/env';
 import { HttpMqttBridge } from '~/lib/http-mqtt-bridge';
 import type { MqttBridgeClient } from '~/modules/mqtt/mqtt.service';
 import { LandroidConfig } from '~/types/config/landroid';
-import { objectToMap } from '~/util/object';
-
-const CLOUDS = {
-  ferrex: {
-    apiHost: 'api.watermelon.smartmower.cloud',
-    clientId: '10078D10-3840-474A-848A-5EED949AB0FC',
-    loginUrl: 'https://id.watermelon.smartmower.cloud',
-    mqttPrefix: 'FE',
-  },
-  kress: {
-    apiHost: 'api.kress-robotik.com',
-    clientId: '931d4bc4-3192-405a-be78-98e43486dc59',
-    loginUrl: 'https://id.kress.com',
-    mqttPrefix: 'KR',
-  },
-  landxcape: {
-    apiHost: 'api.landxcape-services.com',
-    clientId: 'dec998a9-066f-433b-987a-f5fc54d3af7c',
-    loginUrl: 'https://id.landxcape-services.com',
-    mqttPrefix: 'LX',
-  },
-  worx: {
-    apiHost: 'api.worxlandroid.com',
-    clientId: '150da4d2-bb44-433b-9429-3773adc70a2a',
-    loginUrl: 'https://id.worx.com',
-    mqttPrefix: 'WX',
-  },
-} as const;
-
-const DEFAULT_MQTT_ENDPOINT = 'iot.eu-west-1.worxlandroid.com';
-
-interface CloudToken {
-  access_token: string;
-  expires_in: number;
-  refresh_token: string;
-}
-
-interface CloudAuthentication {
-  expiresAt: number;
-  token: CloudToken;
-}
-
-interface CloudUser {
-  id: string;
-}
-
-interface CloudMower {
-  last_status?: { payload?: Record<string, unknown> };
-  mqtt_endpoint?: string;
-  mqtt_topics?: {
-    command_in: string;
-    command_out: string;
-  };
-  online?: boolean;
-  serial_number: string;
-  uuid?: string;
-  user_id?: string;
-}
-
-interface CloudClient {
-  updateCustomAuthHeaders?: (headers: Record<string, string>) => void;
-  end(force?: boolean): void;
-  on(event: string, listener: (...args: unknown[]) => void): void;
-  publish(topic: string, payload: string, options?: { qos: number }): void;
-  subscribe(topic: string, options?: { qos: number }): void;
-}
-
-const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+import {
+  CLOUDS,
+  DEFAULT_MQTT_ENDPOINT,
+  type CloudAuthentication,
+  type CloudClient,
+  type CloudMower,
+  type CloudToken,
+  type CloudUser,
+} from './cloud';
+import { mapConfigurationToMqtt } from './configuration';
 
 /** Bridges one Landroid cloud account and its configured mowers to MQTT.
  */
@@ -96,8 +38,8 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
   /**
    * Creates the class instance.
-   * @param cfg - Value of type `{ mower: { topic: string; serial: string; enabled: boolean; }[]; id: string; enabled: boolean; topic: string; cloud: { type: "worx" | "kress" | "landxcape" | "ferrex"; email: string; password: string; loginUrl?: string | undefined; }; updateInterval: number; authFile?: string | undefined; }`.
-   * @param mqtt - Value of type `MqttBridgeClient`.
+   * @param {{ mower: { topic: string; serial: string; enabled: boolean; }[]; id: string; enabled: boolean; topic: string; cloud: { type: "worx" | "kress" | "landxcape" | "ferrex"; email: string; password: string; loginUrl?: string | undefined; }; updateInterval: number; authFile?: string | undefined; }} cfg The cfg value.
+   * @param {MqttBridgeClient} mqtt The mqtt value.
    */
   constructor(cfg: LandroidConfig, mqtt: MqttBridgeClient) {
     super(cfg, mqtt, `LANDROID@${cfg.cloud.type}`, '');
@@ -108,7 +50,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
   //#region lifecycle
   /**
    * Executes `setup`.
-   * @returns Result of type `void`.
+   * @returns {void} Result.
    */
   public setup() {
     this.mqtt.publish(`${this.cfg.topic}/connected`, false);
@@ -123,7 +65,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
   /**
    * Executes `destroy`.
-   * @returns Result of type `void`.
+   * @returns {void} Result.
    */
   public override destroy() {
     if (this.destroyed) return;
@@ -146,7 +88,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
   //#region cloud setup
   /**
    * Executes `cloud`.
-   * @returns Result of type `{ loginUrl: string; apiHost: "api.watermelon.smartmower.cloud"; clientId: "10078D10-3840-474A-848A-5EED949AB0FC"; mqttPrefix: "FE"; } | { loginUrl: string; apiHost: "api.kress-robotik.com"; clientId: "931d4bc4-3192-405a-be78-98e43486dc59"; mqttPrefix: "KR"; } | { ...; } | { ...; }`.
+   * @returns {{ loginUrl: string; apiHost: "api.watermelon.smartmower.cloud"; clientId: "10078D10-3840-474A-848A-5EED949AB0FC"; mqttPrefix: "FE"; } | { loginUrl: string; apiHost: "api.kress-robotik.com"; clientId: "931d4bc4-3192-405a-be78-98e43486dc59"; mqttPrefix: "KR"; } | { ...; } | { ...; }} Result.
    */
   private get cloud() {
     const cloud = CLOUDS[this.cfg.cloud.type];
@@ -155,7 +97,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
   /**
    * Executes `enabledMowers`.
-   * @returns Result of type `{ topic: string; serial: string; enabled: boolean; }[]`.
+   * @returns {{ topic: string; serial: string; enabled: boolean; }[]} Result.
    */
   private get enabledMowers() {
     return this.cfg.mower.filter((mower) => mower.enabled);
@@ -163,7 +105,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
   /**
    * Executes `start`.
-   * @returns Result of type `Promise<void>`.
+   * @returns {Promise<void>} Result.
    */
   private async start() {
     const restored = await this.loadAuthentication();
@@ -186,7 +128,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
   /**
    * Executes `login`.
-   * @returns Result of type `Promise<boolean>`.
+   * @returns {Promise<boolean>} Result.
    */
   private async login() {
     const controller = this.startRequest('login');
@@ -221,7 +163,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
   /**
    * Executes `getMowers`.
-   * @returns Result of type `Promise<void>`.
+   * @returns {Promise<void>} Result.
    */
   private async getMowers() {
     const controller = this.startRequest('mowers');
@@ -251,7 +193,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
   }
 
   /** The cloud no longer supports GET /users/me; every product item contains its owner ID.
-   * @returns Result of type `boolean`.
+   * @returns {boolean} Result.
    */
   private setUserFromMowers() {
     const mower = this.cloudMowers.values().next().value as CloudMower | undefined;
@@ -266,7 +208,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
   /**
    * Executes `scheduleTokenRefresh`.
-   * @returns Result of type `void`.
+   * @returns {void} Result.
    */
   private scheduleTokenRefresh() {
     if (!this.token || this.destroyed) return;
@@ -278,7 +220,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
   /**
    * Executes `refreshToken`.
-   * @returns Result of type `Promise<void>`.
+   * @returns {Promise<void>} Result.
    */
   private async refreshToken() {
     if (!this.token || this.destroyed) return;
@@ -311,7 +253,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
   /**
    * Executes `authenticationFile`.
-   * @returns Result of type `string`.
+   * @returns {string} Result.
    */
   private get authenticationFile() {
     const topicHash = createHash('sha256').update(this.cfg.topic).digest('hex').slice(0, 12);
@@ -321,7 +263,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
   /**
    * Executes `loadAuthentication`.
-   * @returns Result of type `Promise<boolean>`.
+   * @returns {Promise<boolean>} Result.
    */
   private async loadAuthentication() {
     try {
@@ -339,7 +281,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
   /**
    * Executes `persistAuthentication`.
-   * @returns Result of type `Promise<void>`.
+   * @returns {Promise<void>} Result.
    */
   private async persistAuthentication() {
     if (!this.token?.refresh_token) return;
@@ -360,7 +302,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
   //#region state
   /**
    * Executes `updateMowers`.
-   * @returns Result of type `Promise<void>`.
+   * @returns {Promise<void>} Result.
    */
   private async updateMowers() {
     if (!this.token || this.destroyed) return;
@@ -373,8 +315,8 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
   /**
    * Executes `updateMower`.
-   * @param serial - Value of type `string`.
-   * @returns Result of type `Promise<void>`.
+   * @param {string} serial The serial value.
+   * @returns {Promise<void>} Result.
    */
   private async updateMower(serial: string) {
     const controller = this.startRequest(`mower:${serial}`);
@@ -399,9 +341,9 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
   /**
    * Executes `publishMowerData`.
-   * @param serial - Value of type `string`.
-   * @param data - Value of type `unknown`.
-   * @returns Result of type `void`.
+   * @param {string} serial The serial value.
+   * @param {unknown} data The data value.
+   * @returns {void} Result.
    */
   private publishMowerData(serial: string, data: unknown) {
     const mower = this.enabledMowers.find((candidate) => candidate.serial === serial);
@@ -413,22 +355,21 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
   /**
    * Executes `publishConfiguration`.
-   * @param topic - Value of type `string`.
-   * @param cfg - Value of type `unknown`.
-   * @returns Result of type `void`.
+   * @param {string} topic The topic value.
+   * @param {unknown} cfg The cfg value.
+   * @returns {void} Result.
    */
   private publishConfiguration(topic: string, cfg: unknown) {
-    const configuration = mapConfiguration(getRecord(cfg));
-    for (const [path, value] of objectToMap(configuration)) {
+    for (const [path, value] of mapConfigurationToMqtt(getRecord(cfg))) {
       this.mqtt.publish(`${topic}/configuration/${path}`, value);
     }
   }
 
   /**
    * Executes `setMowerOnline`.
-   * @param serial - Value of type `string`.
-   * @param online - Value of type `boolean`.
-   * @returns Result of type `void`.
+   * @param {string} serial The serial value.
+   * @param {boolean} online The online value.
+   * @returns {void} Result.
    */
   private setMowerOnline(serial: string, online: boolean) {
     const mower = this.enabledMowers.find((candidate) => candidate.serial === serial);
@@ -444,7 +385,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
   //#region cloud mqtt
   /**
    * Executes `connectCloudMqtt`.
-   * @returns Result of type `void`.
+   * @returns {void} Result.
    */
   private connectCloudMqtt() {
     const firstMower = this.cloudMowers.values().next().value as CloudMower | undefined;
@@ -479,9 +420,9 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
   /**
    * Executes `handleCloudMessage`.
-   * @param topic - Value of type `string`.
-   * @param payload - Value of type `Buffer<ArrayBufferLike>`.
-   * @returns Result of type `void`.
+   * @param {string} topic The topic value.
+   * @param {Buffer<ArrayBufferLike>} payload The payload value.
+   * @returns {void} Result.
    */
   private handleCloudMessage(topic: string, payload: Buffer) {
     const mower = [...this.cloudMowers.values()].find((candidate) => candidate.mqtt_topics?.command_out === topic);
@@ -502,7 +443,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
   /**
    * Executes `createCloudHeaders`.
-   * @returns Result of type `{ 'x-amz-customauthorizer-name': string; 'x-amz-customauthorizer-signature': string; jwt: string; }`.
+   * @returns {{ 'x-amz-customauthorizer-name': string; 'x-amz-customauthorizer-signature': string; jwt: string; }} Result.
    */
   private createCloudHeaders() {
     if (!this.token) throw new Error('Landroid cloud access token is unavailable.');
@@ -521,8 +462,8 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
   //#region commands
   /**
    * Executes `subscribeCommands`.
-   * @param mower - Value of type `{ topic: string; serial: string; enabled: boolean; }`.
-   * @returns Result of type `void`.
+   * @param {{ topic: string; serial: string; enabled: boolean; }} mower The mower value.
+   * @returns {void} Result.
    */
   private subscribeCommands(mower: LandroidConfig['mower'][number]) {
     const commandTopic = `${mower.topic}/set/json`;
@@ -545,9 +486,9 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
   /**
    * Executes `sendCommand`.
-   * @param serial - Value of type `string`.
-   * @param command - Value of type `Record<string, unknown>`.
-   * @returns Result of type `Promise<void>`.
+   * @param {string} serial The serial value.
+   * @param {Record<string, unknown>} command The command value.
+   * @returns {Promise<void>} Result.
    */
   private async sendCommand(serial: string, command: Record<string, unknown>) {
     const mower = this.cloudMowers.get(serial);
@@ -576,8 +517,8 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
   /**
    * Executes `getMowerTopic`.
-   * @param serial - Value of type `string`.
-   * @returns Result of type `string`.
+   * @param {string} serial The serial value.
+   * @returns {string} Result.
    */
   private getMowerTopic(serial: string) {
     return this.enabledMowers.find((mower) => mower.serial === serial)?.topic ?? serial;
@@ -585,7 +526,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
   /**
    * Executes `authHeaders`.
-   * @returns Result of type `{ accept: string; 'accept-language': string; 'content-type': string; 'user-agent': string; }`.
+   * @returns {{ accept: string; 'accept-language': string; 'content-type': string; 'user-agent': string; }} Result.
    */
   private authHeaders() {
     return {
@@ -598,7 +539,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
   /**
    * Executes `authorizedHeaders`.
-   * @returns Result of type `{ authorization: string; accept: string; 'accept-language': string; 'content-type': string; 'user-agent': string; }`.
+   * @returns {{ authorization: string; accept: string; 'accept-language': string; 'content-type': string; 'user-agent': string; }} Result.
    */
   private authorizedHeaders() {
     if (!this.token) throw new Error('Landroid cloud access token is unavailable.');
@@ -608,8 +549,8 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
   /**
    * Executes `getEndpointRegion`.
-   * @param endpoint - Value of type `string`.
-   * @returns Result of type `string`.
+   * @param {string} endpoint The endpoint value.
+   * @returns {string} Result.
    */
   private getEndpointRegion(endpoint: string) {
     const parts = endpoint.split('.');
@@ -618,10 +559,10 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
   /**
    * Executes `handleCloudRequestError`.
-   * @param message - Value of type `string`.
-   * @param controller - Value of type `AbortController`.
-   * @param error - Value of type `unknown`.
-   * @returns Result of type `void`.
+   * @param {string} message The message value.
+   * @param {AbortController} controller The controller value.
+   * @param {unknown} error The error value.
+   * @returns {void} Result.
    */
   private handleCloudRequestError(message: string, controller: AbortController, error: unknown) {
     if (controller.signal.aborted || this.destroyed) return;
@@ -630,9 +571,9 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
   }
 
   /** Logs only the message because Axios error objects may include request credentials.
-   * @param message - Value of type `string`.
-   * @param error - Value of type `unknown`.
-   * @returns Result of type `void`.
+   * @param {string} message The message value.
+   * @param {unknown} error The error value.
+   * @returns {void} Result.
    */
   private logError(message: string, error: unknown) {
     const detail = error instanceof Error ? error.message : String(error);
@@ -641,106 +582,9 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 }
 
 /**
- * Executes `mapConfiguration`.
- * @param cfg - Value of type `Record<string, unknown> | undefined`.
- * @returns Result of type `{ [k: string]: unknown; }`.
- */
-function mapConfiguration(cfg: Record<string, unknown> | undefined) {
-  if (!cfg) return {};
-
-  const schedule = getRecord(cfg.sc);
-  const autoLock = getRecord(cfg.al);
-  const modules = getRecord(cfg.modules);
-  const digitalFence = getRecord(modules?.DF);
-  const acs = getRecord(modules?.US);
-
-  return withoutUndefined({
-    autoLock: autoLock ? withoutUndefined({ level: autoLock.lvl, timeout: autoLock.t }) : undefined,
-    command: cfg.cmd,
-    date: cfg.dt,
-    language: cfg.lg,
-    modules:
-      digitalFence || acs
-        ? withoutUndefined({
-            antiCollisionSystem: acs ? { enabled: isEnabled(acs.enabled) } : undefined,
-            offLimits: digitalFence
-              ? {
-                  enabled: isEnabled(digitalFence.cut),
-                  shortcutsEnabled: isEnabled(digitalFence.fh),
-                }
-              : undefined,
-          })
-        : undefined,
-    multiZone: withoutUndefined({
-      enabled: cfg.mzk === undefined ? undefined : isEnabled(cfg.mzk),
-      startingPoints: mapNumberedValues(cfg.mz, 'zone'),
-      zoneIndices: mapNumberedValues(cfg.mzv, 'zone'),
-    }),
-    rainDelayMinutes: cfg.rd,
-    requestId: cfg.id,
-    schedules: schedule
-      ? withoutUndefined({
-          active: schedule.m === undefined ? undefined : isEnabled(schedule.m),
-          distanceMode: schedule.distm,
-          oneTime: getRecord(schedule.ots)
-            ? withoutUndefined({
-                boundaryCut: isEnabled(getRecord(schedule.ots)?.bc),
-                durationMinutes: getRecord(schedule.ots)?.wtm,
-              })
-            : undefined,
-          primary: mapWeeklySchedule(schedule.d),
-          secondary: mapWeeklySchedule(schedule.dd),
-          timeExtensionPercent: schedule.p,
-        })
-      : undefined,
-    serialNumber: cfg.sn,
-    time: cfg.tm,
-    torquePercent: cfg.tq,
-  });
-}
-
-/**
- * Executes `mapWeeklySchedule`.
- * @param value - Value of type `unknown`.
- * @returns Result of type `{ [k: string]: { [k: string]: unknown; }; } | undefined`.
- */
-function mapWeeklySchedule(value: unknown) {
-  if (!Array.isArray(value)) return undefined;
-
-  return Object.fromEntries(
-    value.flatMap((entry, index) => {
-      if (!Array.isArray(entry) || !WEEKDAYS[index]) return [];
-
-      return [
-        [
-          WEEKDAYS[index],
-          withoutUndefined({
-            boundaryCut: entry[2] === undefined ? undefined : isEnabled(entry[2]),
-            durationMinutes: entry[1],
-            startTime: entry[0],
-          }),
-        ],
-      ];
-    }),
-  );
-}
-
-/**
- * Executes `mapNumberedValues`.
- * @param value - Value of type `unknown`.
- * @param prefix - Value of type `string`.
- * @returns Result of type `{ [k: string]: any; } | undefined`.
- */
-function mapNumberedValues(value: unknown, prefix: string) {
-  if (!Array.isArray(value)) return undefined;
-
-  return Object.fromEntries(value.map((item, index) => [`${prefix}${index + 1}`, item]));
-}
-
-/**
  * Executes `getRecord`.
- * @param value - Value of type `unknown`.
- * @returns Result of type `Record<string, unknown> | undefined`.
+ * @param {unknown} value The value value.
+ * @returns {Record<string, unknown> | undefined} Result.
  */
 function getRecord(value: unknown) {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : undefined;
@@ -748,18 +592,6 @@ function getRecord(value: unknown) {
 
 /**
  * Executes `isEnabled`.
- * @param value - Value of type `unknown`.
- * @returns Result of type `boolean`.
+ * @param {unknown} value The value value.
+ * @returns {boolean} Result.
  */
-function isEnabled(value: unknown) {
-  return value === 1 || value === '1' || value === true;
-}
-
-/**
- * Executes `withoutUndefined`.
- * @param object - Value of type `Record<string, unknown>`.
- * @returns Result of type `{ [k: string]: unknown; }`.
- */
-function withoutUndefined(object: Record<string, unknown>) {
-  return Object.fromEntries(Object.entries(object).filter(([, value]) => value !== undefined));
-}

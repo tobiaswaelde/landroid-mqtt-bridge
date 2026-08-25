@@ -1,16 +1,16 @@
 /**
  * Executes `objectToMap`.
- * @param value - Value of type `unknown`.
- * @param prefix - Value of type `string`.
- * @returns Result of type `Map<string, string | number | boolean>`.
+ * @param {unknown} value The value value.
+ * @param {string} prefix The prefix value.
+ * @returns {Map<string, string | number | boolean>} Result.
  */
 export function objectToMap(value: unknown, prefix = ''): Map<string, string | number | boolean> {
   const result = new Map<string, string | number | boolean>();
   /**
    * Executes this implementation.
-   * @param current - Value of type `unknown`.
-   * @param path - Value of type `string`.
-   * @returns Result of type `void`.
+   * @param {unknown} current The current value.
+   * @param {string} path The path value.
+   * @returns {void} Result.
    */
   const visit = (current: unknown, path: string): void => {
     if (Array.isArray(current)) {
@@ -29,8 +29,8 @@ export function objectToMap(value: unknown, prefix = ''): Map<string, string | n
 }
 /**
  * Executes `parseObject`.
- * @param value - Value of type `T`.
- * @returns Result of type `T`.
+ * @param {T} value The value value.
+ * @returns {T} Result.
  */
 export function parseObject<T>(value: T): T {
   return value;
