@@ -3,6 +3,7 @@ dist
 coverage
 .env
 config/config.yml
+*.auth.json
 config/*.auth.json
 config/.*.auth.json
 docs/.vitepress/.temp
