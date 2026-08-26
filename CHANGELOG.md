@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1
+
+### Patch Changes
+
+- [`035dc11`](https://github.com/tobiaswaelde/landroid-mqtt-bridge/commit/035dc1199eac028ad73e3d1b96842b5c2209953d) Thanks [@tobiaswaelde](https://github.com/tobiaswaelde)! - Automate version tagging, GitHub releases, and container publishing after a release merge.
+
 ## 0.1.0
 
 ### Minor Changes
