@@ -1,25 +1,23 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { connect, type IClientOptions, type MqttClient } from 'mqtt';
+
 import { CONFIG } from '~/config/config';
 import { resolveMqttClientId } from './client-id';
 
 export type MqttMessageHandler = (topic: string, payload: string) => void;
+
 export interface MqttBridgeClient {
   publish(topic: string, payload: string | number | boolean | null): void;
   subscribe(topic: string, handler: MqttMessageHandler): () => void;
 }
 
-/**
- * Executes `MqttService`.
- */
+/** Owns the one local MQTT connection and dispatches subscriptions to bridge instances. */
 @Injectable()
 export class MqttService implements MqttBridgeClient, OnModuleDestroy {
   private readonly logger = new Logger(MqttService.name);
   private readonly client: MqttClient;
   private readonly subscriptions = new Map<string, Set<MqttMessageHandler>>();
-  /**
-   * Creates the class instance.
-   */
+  /** Connects with the configured broker options. */
   constructor() {
     const { mqtt } = CONFIG;
     const clientId = resolveMqttClientId(mqtt.clientId);
@@ -37,12 +35,7 @@ export class MqttService implements MqttBridgeClient, OnModuleDestroy {
     this.client.on('error', (error) => this.logger.error('MQTT connection failed', error));
     this.client.on('message', (topic, payload) => this.dispatch(topic, payload.toString()));
   }
-  /**
-   * Executes `publish`.
-   * @param {string} topic The topic value.
-   * @param {string | number | boolean | null} payload The payload value.
-   * @returns {void} Result.
-   */
+  /** Publishes a non-retained scalar MQTT payload. */
   publish(topic: string, payload: string | number | boolean | null) {
     this.client.publish(
       topic,
@@ -51,12 +44,7 @@ export class MqttService implements MqttBridgeClient, OnModuleDestroy {
       (error) => error && this.logger.error(`Failed to publish ${topic}`, error),
     );
   }
-  /**
-   * Executes `subscribe`.
-   * @param {string} filter The filter value.
-   * @param {MqttMessageHandler} handler The handler value.
-   * @returns {() => void} Result.
-   */
+  /** Adds a handler to a shared broker subscription and returns its cleanup callback. */
   subscribe(filter: string, handler: MqttMessageHandler) {
     let handlers = this.subscriptions.get(filter);
     if (!handlers) {
@@ -74,20 +62,12 @@ export class MqttService implements MqttBridgeClient, OnModuleDestroy {
       this.client.unsubscribe(filter);
     };
   }
-  /**
-   * Executes `onModuleDestroy`.
-   * @returns {void} Result.
-   */
+  /** Drops all handlers and closes the shared broker connection. */
   onModuleDestroy() {
     this.subscriptions.clear();
     this.client.end();
   }
-  /**
-   * Executes `dispatch`.
-   * @param {string} topic The topic value.
-   * @param {string} payload The payload value.
-   * @returns {void} Result.
-   */
+  /** Calls each handler whose MQTT filter matches an incoming publication. */
   private dispatch(topic: string, payload: string) {
     for (const [filter, handlers] of this.subscriptions)
       if (matches(filter, topic))
@@ -99,12 +79,7 @@ export class MqttService implements MqttBridgeClient, OnModuleDestroy {
           }
   }
 }
-/**
- * Executes `matches`.
- * @param {string} filter The filter value.
- * @param {string} topic The topic value.
- * @returns {boolean} Result.
- */
+/** Matches the `+` and terminal `#` MQTT wildcards used by bridge subscriptions. */
 function matches(filter: string, topic: string) {
   const a = filter.split('/'),
     b = topic.split('/');

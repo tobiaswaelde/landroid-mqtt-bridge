@@ -1,7 +1,9 @@
-import { load } from 'js-yaml';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+
+import { load } from 'js-yaml';
 import { z } from 'zod';
+
 export const instanceSchema = z.object({
   id: z
     .string()
@@ -28,26 +30,17 @@ export const commonSchema = z.object({
     .object({ level: z.enum(['error', 'warn', 'log', 'debug', 'verbose']).default('log') })
     .default({ level: 'log' }),
 });
-/**
- * Executes `configFilePath`.
- * @returns {string} Result.
- */
+
+/** Resolves the configuration file from the environment, CLI, or default path. */
 export function configFilePath() {
   const index = process.argv.indexOf('--config');
   return path.resolve(process.env.CONFIG_FILE ?? (index >= 0 ? process.argv[index + 1] : 'config/config.yml'));
 }
-/**
- * Executes `configDirectory`.
- * @returns {string} Result.
- */
+/** Returns the directory that contains the resolved configuration file. */
 export function configDirectory() {
   return path.dirname(configFilePath());
 }
-/**
- * Executes `loadConfig`.
- * @param {T} schema The schema value.
- * @returns {output<T>} Result.
- */
+/** Loads and validates YAML configuration against a Zod schema. */
 export function loadConfig<T extends z.ZodType>(schema: T): z.infer<T> {
   const file = configFilePath();
   if (!existsSync(file)) throw new Error(`Configuration file not found: ${file}`);

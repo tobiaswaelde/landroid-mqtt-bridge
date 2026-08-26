@@ -2,19 +2,23 @@ import { objectToMap } from '~/util/object';
 
 const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
-/** Publishes a mower configuration as MQTT-compatible scalar values.
- * @param {Record<string, unknown> | undefined} cfg Raw mower configuration.
- * @returns {Map<string, unknown>} MQTT paths and values.
- */
-export function mapConfigurationToMqtt(cfg: Record<string, unknown> | undefined) {
-  return objectToMap(mapConfiguration(cfg));
+/** Publishes stable configuration and telemetry fields as MQTT-compatible scalar values. */
+export function mapConfigurationToMqtt(payload: Record<string, unknown> | undefined) {
+  return objectToMap(mapMowerData(payload));
 }
 
-/** Converts a cloud mower configuration to a stable, descriptive object.
- * @param {Record<string, unknown> | undefined} cfg Raw mower configuration.
- * @returns {Record<string, unknown>} Normalized configuration.
- */
-function mapConfiguration(cfg: Record<string, unknown> | undefined) {
+/** Converts a raw cloud snapshot to stable, descriptive configuration and telemetry fields. */
+function mapMowerData(payload: Record<string, unknown> | undefined) {
+  if (!payload) return {};
+
+  return withoutUndefined({
+    ...mapMowerConfiguration(getRecord(payload.cfg)),
+    ...mapMowerTelemetry(getRecord(payload.dat)),
+  });
+}
+
+/** Converts the cloud's abbreviated configuration object to named values. */
+function mapMowerConfiguration(cfg: Record<string, unknown> | undefined) {
   if (!cfg) return {};
 
   const schedule = getRecord(cfg.sc);
@@ -62,6 +66,52 @@ function mapConfiguration(cfg: Record<string, unknown> | undefined) {
     serialNumber: cfg.sn,
     time: cfg.tm,
     torquePercent: cfg.tq,
+  });
+}
+
+/** Converts the cloud's abbreviated live-data object to named telemetry values. */
+function mapMowerTelemetry(data: Record<string, unknown> | undefined) {
+  if (!data) return {};
+
+  const battery = getRecord(data.bt);
+  const orientation = Array.isArray(data.dmp) ? data.dmp : undefined;
+  const statistics = getRecord(data.st);
+  const rain = getRecord(data.rain);
+
+  return withoutUndefined({
+    activityCode: data.act,
+    battery: battery
+      ? withoutUndefined({
+          chargeCycles: battery.nr,
+          charging: battery.c === undefined ? undefined : isEnabled(battery.c),
+          mode: battery.m,
+          percentage: battery.p,
+          temperatureCelsius: battery.t,
+          voltage: battery.v,
+        })
+      : undefined,
+    connection: data.conn,
+    errorCode: data.le,
+    firmware: withoutUndefined({ boardVersion: data.fwb, version: data.fw }),
+    locked: data.lk === undefined ? undefined : isEnabled(data.lk),
+    macAddress: data.mac,
+    orientation: orientation
+      ? withoutUndefined({ pitch: orientation[0], roll: orientation[1], yaw: orientation[2] })
+      : undefined,
+    rain: rain
+      ? withoutUndefined({ detected: rain.s === undefined ? undefined : isEnabled(rain.s), remainingMinutes: rain.cnt })
+      : undefined,
+    signalStrength: data.rsi,
+    statistics: statistics
+      ? withoutUndefined({
+          bladeWorkTime: statistics.b,
+          distance: statistics.d,
+          lawnPerimeter: statistics.bl,
+          mowerWorkTime: statistics.wt,
+        })
+      : undefined,
+    statusCode: data.ls,
+    zoneIndex: data.lz,
   });
 }
 

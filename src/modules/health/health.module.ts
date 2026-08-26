@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
+
 import { HealthController } from './health.controller';
-/**
- * Executes `HealthModule`.
- */
+
+/** Registers the process liveness endpoint. */
 @Module({ controllers: [HealthController] })
 export class HealthModule {}

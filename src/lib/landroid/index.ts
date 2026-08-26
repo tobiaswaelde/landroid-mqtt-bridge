@@ -1,26 +1,25 @@
 import awsIot from 'aws-iot-device-sdk';
 import { HttpsCookieAgent } from 'http-cookie-agent/http';
-import { createHash } from 'node:crypto';
-import { chmod, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
-import path from 'node:path';
 import { CookieJar } from 'tough-cookie';
-import { ENV } from '~/config/env';
+
 import { HttpMqttBridge } from '~/lib/http-mqtt-bridge';
 import type { MqttBridgeClient } from '~/modules/mqtt/mqtt.service';
-import { LandroidConfig } from '~/types/config/landroid';
+import type { LandroidConfig } from '~/types/config/landroid';
+
+import { authenticationFile, loadAuthentication, persistAuthentication } from './authentication';
 import {
   CLOUDS,
   DEFAULT_MQTT_ENDPOINT,
-  type CloudAuthentication,
   type CloudClient,
   type CloudMower,
   type CloudToken,
   type CloudUser,
 } from './cloud';
+import { createMowerCommand, parseMowerCommand } from './command';
 import { mapConfigurationToMqtt } from './configuration';
+import { authenticationHeaders, authorizedHeaders, cloudHeaders, endpointRegion } from './headers';
 
-/** Bridges one Landroid cloud account and its configured mowers to MQTT.
- */
+/** Bridges one Landroid cloud account and its configured mowers to MQTT. */
 export class Landroid extends HttpMqttBridge<LandroidConfig> {
   private readonly cookieJar = new CookieJar();
   private readonly httpsAgent = new HttpsCookieAgent({
@@ -36,11 +35,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
   private token?: CloudToken;
   private user?: CloudUser;
 
-  /**
-   * Creates the class instance.
-   * @param {{ mower: { topic: string; serial: string; enabled: boolean; }[]; id: string; enabled: boolean; topic: string; cloud: { type: "worx" | "kress" | "landxcape" | "ferrex"; email: string; password: string; loginUrl?: string | undefined; }; updateInterval: number; authFile?: string | undefined; }} cfg The cfg value.
-   * @param {MqttBridgeClient} mqtt The mqtt value.
-   */
+  /** Creates a bridge for one configured cloud account. */
   constructor(cfg: LandroidConfig, mqtt: MqttBridgeClient) {
     super(cfg, mqtt, `LANDROID@${cfg.cloud.type}`, '');
     this.api.defaults.httpsAgent = this.httpsAgent;
@@ -48,10 +43,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
   }
 
   //#region lifecycle
-  /**
-   * Executes `setup`.
-   * @returns {void} Result.
-   */
+  /** Publishes the initial offline state, subscribes to commands, and starts the cloud session. */
   public setup() {
     this.mqtt.publish(`${this.cfg.topic}/connected`, false);
     for (const mower of this.enabledMowers) {
@@ -63,10 +55,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
     this.poll('mowers', this.cfg.updateInterval, () => this.updateMowers());
   }
 
-  /**
-   * Executes `destroy`.
-   * @returns {void} Result.
-   */
+  /** Ends every active connection and leaves retained state unavailable. */
   public override destroy() {
     if (this.destroyed) return;
 
@@ -86,27 +75,18 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
   //#endregion
 
   //#region cloud setup
-  /**
-   * Executes `cloud`.
-   * @returns {{ loginUrl: string; apiHost: "api.watermelon.smartmower.cloud"; clientId: "10078D10-3840-474A-848A-5EED949AB0FC"; mqttPrefix: "FE"; } | { loginUrl: string; apiHost: "api.kress-robotik.com"; clientId: "931d4bc4-3192-405a-be78-98e43486dc59"; mqttPrefix: "KR"; } | { ...; } | { ...; }} Result.
-   */
+  /** Resolves the selected vendor cloud and an optional login URL override. */
   private get cloud() {
     const cloud = CLOUDS[this.cfg.cloud.type];
     return { ...cloud, loginUrl: this.cfg.cloud.loginUrl ?? cloud.loginUrl };
   }
 
-  /**
-   * Executes `enabledMowers`.
-   * @returns {{ topic: string; serial: string; enabled: boolean; }[]} Result.
-   */
+  /** Returns only mowers intentionally exposed through MQTT. */
   private get enabledMowers() {
     return this.cfg.mower.filter((mower) => mower.enabled);
   }
 
-  /**
-   * Executes `start`.
-   * @returns {Promise<void>} Result.
-   */
+  /** Restores or creates credentials, discovers mowers, then opens cloud MQTT. */
   private async start() {
     const restored = await this.loadAuthentication();
     if (this.destroyed) return;
@@ -126,10 +106,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
     this.scheduleTokenRefresh();
   }
 
-  /**
-   * Executes `login`.
-   * @returns {Promise<boolean>} Result.
-   */
+  /** Signs in with the configured cloud account and stores its refresh token. */
   private async login() {
     const controller = this.startRequest('login');
 
@@ -143,7 +120,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
           scope: '*',
           username: this.cfg.cloud.email,
         },
-        { headers: this.authHeaders(), signal: controller.signal },
+        { headers: authenticationHeaders(), signal: controller.signal },
       );
       if (controller.signal.aborted || this.destroyed) return false;
 
@@ -161,17 +138,14 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
     }
   }
 
-  /**
-   * Executes `getMowers`.
-   * @returns {Promise<void>} Result.
-   */
+  /** Fetches cloud mowers and keeps only explicitly configured serial numbers. */
   private async getMowers() {
     const controller = this.startRequest('mowers');
 
     try {
       const response = await this.api.get<CloudMower[]>(
         `https://${this.cloud.apiHost}/api/v2/product-items?status=1&gps_status=1`,
-        { headers: this.authorizedHeaders(), signal: controller.signal },
+        { headers: authorizedHeaders(this.token), signal: controller.signal },
       );
       if (controller.signal.aborted || this.destroyed) return;
 
@@ -192,9 +166,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
     }
   }
 
-  /** The cloud no longer supports GET /users/me; every product item contains its owner ID.
-   * @returns {boolean} Result.
-   */
+  /** Gets the cloud user ID from a mower because the cloud no longer supports `GET /users/me`. */
   private setUserFromMowers() {
     const mower = this.cloudMowers.values().next().value as CloudMower | undefined;
     if (!mower?.user_id) {
@@ -206,10 +178,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
     return true;
   }
 
-  /**
-   * Executes `scheduleTokenRefresh`.
-   * @returns {void} Result.
-   */
+  /** Refreshes sufficiently before expiry, while waiting at least one minute between attempts. */
   private scheduleTokenRefresh() {
     if (!this.token || this.destroyed) return;
 
@@ -218,10 +187,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
     this.refreshTimer = setTimeout(() => void this.refreshToken(), timeout);
   }
 
-  /**
-   * Executes `refreshToken`.
-   * @returns {Promise<void>} Result.
-   */
+  /** Refreshes the bearer token and updates the already-open cloud MQTT client. */
   private async refreshToken() {
     if (!this.token || this.destroyed) return;
 
@@ -236,13 +202,13 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
           scope:
             'user:profile mower:firmware mower:view mower:pair user:manage mower:update mower:activity_log user:certificate data:products mower:unpair mower:warranty mobile:notifications mower:lawn',
         },
-        { headers: this.authHeaders(), signal: controller.signal },
+        { headers: authenticationHeaders(), signal: controller.signal },
       );
       if (controller.signal.aborted || this.destroyed) return;
 
       this.token = response.data;
       await this.persistAuthentication();
-      this.cloudClient?.updateCustomAuthHeaders?.(this.createCloudHeaders());
+      this.cloudClient?.updateCustomAuthHeaders?.(cloudHeaders(this.token));
       this.scheduleTokenRefresh();
     } catch (error) {
       this.handleCloudRequestError('Failed to refresh Landroid cloud token.', controller, error);
@@ -251,48 +217,25 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
     }
   }
 
-  /**
-   * Executes `authenticationFile`.
-   * @returns {string} Result.
-   */
-  private get authenticationFile() {
-    const topicHash = createHash('sha256').update(this.cfg.topic).digest('hex').slice(0, 12);
-    const file = this.cfg.authFile ?? `.landroid-${topicHash}.auth.json`;
-    return path.isAbsolute(file) ? file : path.resolve(ENV.CONFIG_PATH, file);
-  }
-
-  /**
-   * Executes `loadAuthentication`.
-   * @returns {Promise<boolean>} Result.
-   */
+  /** Restores an existing refresh token without logging credentials. */
   private async loadAuthentication() {
     try {
-      const value = JSON.parse(await readFile(this.authenticationFile, 'utf8')) as Partial<CloudAuthentication>;
-      if (!value.token || typeof value.token.refresh_token !== 'string' || typeof value.expiresAt !== 'number')
-        return false;
-      this.token = value.token;
-      return true;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT')
-        this.logger.warn('Could not load Landroid authentication file.');
+      this.token = await loadAuthentication(authenticationFile(this.cfg));
+
+      return Boolean(this.token);
+    } catch {
+      this.logger.warn('Could not load Landroid authentication file.');
+
       return false;
     }
   }
 
-  /**
-   * Executes `persistAuthentication`.
-   * @returns {Promise<void>} Result.
-   */
+  /** Persists the current refresh token with private file permissions. */
   private async persistAuthentication() {
     if (!this.token?.refresh_token) return;
-    const file = this.authenticationFile;
-    const temporary = `${file}.${process.pid}.tmp`;
-    const value: CloudAuthentication = { expiresAt: Date.now() + this.token.expires_in * 1000, token: this.token };
+
     try {
-      await mkdir(path.dirname(file), { recursive: true });
-      await writeFile(temporary, JSON.stringify(value), { encoding: 'utf8', mode: 0o600 });
-      await rename(temporary, file);
-      await chmod(file, 0o600);
+      await persistAuthentication(authenticationFile(this.cfg), this.token);
     } catch {
       this.logger.warn('Could not persist Landroid authentication file.');
     }
@@ -300,10 +243,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
   //#endregion
 
   //#region state
-  /**
-   * Executes `updateMowers`.
-   * @returns {Promise<void>} Result.
-   */
+  /** Refreshes state for every configured mower known to the cloud. */
   private async updateMowers() {
     if (!this.token || this.destroyed) return;
 
@@ -313,18 +253,14 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
     }
   }
 
-  /**
-   * Executes `updateMower`.
-   * @param {string} serial The serial value.
-   * @returns {Promise<void>} Result.
-   */
+  /** Refreshes and publishes one mower's REST snapshot. */
   private async updateMower(serial: string) {
     const controller = this.startRequest(`mower:${serial}`);
 
     try {
       const response = await this.api.get<CloudMower>(
         `https://${this.cloud.apiHost}/api/v2/product-items/${serial}/?status=1&gps_status=1`,
-        { headers: this.authorizedHeaders(), signal: controller.signal },
+        { headers: authorizedHeaders(this.token), signal: controller.signal },
       );
       if (controller.signal.aborted || this.destroyed) return;
 
@@ -339,38 +275,23 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
     }
   }
 
-  /**
-   * Executes `publishMowerData`.
-   * @param {string} serial The serial value.
-   * @param {unknown} data The data value.
-   * @returns {void} Result.
-   */
+  /** Publishes the raw snapshot and its stable flattened configuration fields. */
   private publishMowerData(serial: string, data: unknown) {
     const mower = this.enabledMowers.find((candidate) => candidate.serial === serial);
     if (!mower) return;
 
     this.mqtt.publish(`${mower.topic}/mowerdata`, JSON.stringify(data));
-    this.publishConfiguration(mower.topic, getRecord(data)?.cfg);
+    this.publishConfiguration(mower.topic, getRecord(data));
   }
 
-  /**
-   * Executes `publishConfiguration`.
-   * @param {string} topic The topic value.
-   * @param {unknown} cfg The cfg value.
-   * @returns {void} Result.
-   */
-  private publishConfiguration(topic: string, cfg: unknown) {
-    for (const [path, value] of mapConfigurationToMqtt(getRecord(cfg))) {
+  /** Publishes each known mower configuration value under its own MQTT topic. */
+  private publishConfiguration(topic: string, data: unknown) {
+    for (const [path, value] of mapConfigurationToMqtt(getRecord(data))) {
       this.mqtt.publish(`${topic}/configuration/${path}`, value);
     }
   }
 
-  /**
-   * Executes `setMowerOnline`.
-   * @param {string} serial The serial value.
-   * @param {boolean} online The online value.
-   * @returns {void} Result.
-   */
+  /** Emits an availability transition once, including the initial offline state. */
   private setMowerOnline(serial: string, online: boolean) {
     const mower = this.enabledMowers.find((candidate) => candidate.serial === serial);
     if (!mower) return;
@@ -383,10 +304,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
   //#endregion
 
   //#region cloud mqtt
-  /**
-   * Executes `connectCloudMqtt`.
-   * @returns {void} Result.
-   */
+  /** Opens one vendor MQTT client for the account and subscribes to each mower. */
   private connectCloudMqtt() {
     const firstMower = this.cloudMowers.values().next().value as CloudMower | undefined;
     if (!firstMower || !this.user || this.destroyed) return;
@@ -396,10 +314,10 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
     const options = {
       baseReconnectTimeMs: 5_000,
       clientId,
-      customAuthHeaders: this.createCloudHeaders(),
+      customAuthHeaders: cloudHeaders(this.token),
       host: endpoint,
       protocol: 'wss-custom-auth',
-      region: this.getEndpointRegion(endpoint),
+      region: endpointRegion(endpoint),
       username: 'mqtt-bridges',
     };
     this.cloudClient = new (awsIot as unknown as { device: new (options: unknown) => CloudClient }).device(options);
@@ -418,12 +336,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
     this.cloudClient.on('offline', () => this.logger.warn('Landroid cloud MQTT is offline.'));
   }
 
-  /**
-   * Executes `handleCloudMessage`.
-   * @param {string} topic The topic value.
-   * @param {Buffer<ArrayBufferLike>} payload The payload value.
-   * @returns {void} Result.
-   */
+  /** Forwards a cloud MQTT snapshot to the matching configured mower. */
   private handleCloudMessage(topic: string, payload: Buffer) {
     const mower = [...this.cloudMowers.values()].find((candidate) => candidate.mqtt_topics?.command_out === topic);
     if (!mower) return;
@@ -435,48 +348,23 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
     try {
       const data = JSON.parse(message) as Record<string, unknown>;
       this.cloudMowers.set(mower.serial_number, { ...mower, last_status: { payload: data } });
-      this.publishConfiguration(this.getMowerTopic(mower.serial_number), data.cfg);
+      this.publishConfiguration(this.getMowerTopic(mower.serial_number), data);
     } catch {
       this.logger.warn('Received invalid JSON from Landroid cloud MQTT.');
     }
   }
 
-  /**
-   * Executes `createCloudHeaders`.
-   * @returns {{ 'x-amz-customauthorizer-name': string; 'x-amz-customauthorizer-signature': string; jwt: string; }} Result.
-   */
-  private createCloudHeaders() {
-    if (!this.token) throw new Error('Landroid cloud access token is unavailable.');
-
-    const [header, payload, signature] = this.token.access_token.replace(/_/g, '/').replace(/-/g, '+').split('.');
-    if (!header || !payload || !signature) throw new Error('Landroid cloud access token is invalid.');
-
-    return {
-      'x-amz-customauthorizer-name': 'com-worxlandroid-customer',
-      'x-amz-customauthorizer-signature': signature,
-      jwt: `${header}.${payload}`,
-    };
-  }
   //#endregion
 
   //#region commands
-  /**
-   * Executes `subscribeCommands`.
-   * @param {{ topic: string; serial: string; enabled: boolean; }} mower The mower value.
-   * @returns {void} Result.
-   */
+  /** Handles one non-retained JSON command topic for a mower. */
   private subscribeCommands(mower: LandroidConfig['mower'][number]) {
     const commandTopic = `${mower.topic}/set/json`;
     this.subscribe(commandTopic, (_, payload) => {
       if (payload === '') return;
 
       try {
-        const command = JSON.parse(payload) as Record<string, unknown>;
-        if (typeof command !== 'object' || command === null || Array.isArray(command)) {
-          throw new Error('A Landroid command must be a JSON object.');
-        }
-
-        void this.sendCommand(mower.serial, command);
+        void this.sendCommand(mower.serial, parseMowerCommand(payload));
         this.mqtt.publish(commandTopic, null);
       } catch (error) {
         this.logError(`Invalid Landroid command on ${commandTopic}.`, error);
@@ -484,12 +372,7 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
     });
   }
 
-  /**
-   * Executes `sendCommand`.
-   * @param {string} serial The serial value.
-   * @param {Record<string, unknown>} command The command value.
-   * @returns {Promise<void>} Result.
-   */
+  /** Sends a command only while the target mower and cloud MQTT are online. */
   private async sendCommand(serial: string, command: Record<string, unknown>) {
     const mower = this.cloudMowers.get(serial);
     if (!mower?.mqtt_topics || !this.cloudClient || !this.mowerOnline.get(serial)) {
@@ -500,98 +383,32 @@ export class Landroid extends HttpMqttBridge<LandroidConfig> {
 
     const cfg = mower.last_status?.payload?.cfg;
     const language = cfg && typeof cfg === 'object' ? (cfg as Record<string, unknown>).lg : undefined;
-    const now = new Date();
-    const envelope = {
-      cmd: 0,
-      dt: `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`,
-      id: 1_024 + Math.floor(Math.random() * 64_510),
-      lg: typeof language === 'string' ? language : 'de',
-      sn: serial,
-      tm: now.toTimeString().slice(0, 8),
-      ...command,
-    };
+    const envelope = createMowerCommand(serial, language, command);
 
     this.cloudClient.publish(mower.mqtt_topics.command_in, JSON.stringify(envelope), { qos: 1 });
   }
   //#endregion
 
-  /**
-   * Executes `getMowerTopic`.
-   * @param {string} serial The serial value.
-   * @returns {string} Result.
-   */
+  /** Returns the configured topic for a serial, or the serial for an unknown cloud mower. */
   private getMowerTopic(serial: string) {
     return this.enabledMowers.find((mower) => mower.serial === serial)?.topic ?? serial;
   }
 
-  /**
-   * Executes `authHeaders`.
-   * @returns {{ accept: string; 'accept-language': string; 'content-type': string; 'user-agent': string; }} Result.
-   */
-  private authHeaders() {
-    return {
-      accept: 'application/json',
-      'accept-language': 'de-de',
-      'content-type': 'application/json',
-      'user-agent': 'mqtt-bridges',
-    };
-  }
-
-  /**
-   * Executes `authorizedHeaders`.
-   * @returns {{ authorization: string; accept: string; 'accept-language': string; 'content-type': string; 'user-agent': string; }} Result.
-   */
-  private authorizedHeaders() {
-    if (!this.token) throw new Error('Landroid cloud access token is unavailable.');
-
-    return { ...this.authHeaders(), authorization: `Bearer ${this.token.access_token}` };
-  }
-
-  /**
-   * Executes `getEndpointRegion`.
-   * @param {string} endpoint The endpoint value.
-   * @returns {string} Result.
-   */
-  private getEndpointRegion(endpoint: string) {
-    const parts = endpoint.split('.');
-    return parts.length === 3 ? parts[2] : 'eu-west-1';
-  }
-
-  /**
-   * Executes `handleCloudRequestError`.
-   * @param {string} message The message value.
-   * @param {AbortController} controller The controller value.
-   * @param {unknown} error The error value.
-   * @returns {void} Result.
-   */
+  /** Suppresses expected cancellation errors during teardown. */
   private handleCloudRequestError(message: string, controller: AbortController, error: unknown) {
     if (controller.signal.aborted || this.destroyed) return;
 
     this.logError(message, error);
   }
 
-  /** Logs only the message because Axios error objects may include request credentials.
-   * @param {string} message The message value.
-   * @param {unknown} error The error value.
-   * @returns {void} Result.
-   */
+  /** Logs only error messages because Axios error objects may include request credentials. */
   private logError(message: string, error: unknown) {
     const detail = error instanceof Error ? error.message : String(error);
     this.logger.error(`${message} ${detail}`);
   }
 }
 
-/**
- * Executes `getRecord`.
- * @param {unknown} value The value value.
- * @returns {Record<string, unknown> | undefined} Result.
- */
+/** Narrows an untrusted value to a non-array record. */
 function getRecord(value: unknown) {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : undefined;
 }
-
-/**
- * Executes `isEnabled`.
- * @param {unknown} value The value value.
- * @returns {boolean} Result.
- */

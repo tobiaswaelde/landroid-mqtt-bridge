@@ -1,9 +1,7 @@
 import { configDirectory } from './runtime';
+
 export const ENV = {
-  /**
-   * Executes `CONFIG_PATH`.
-   * @returns {string} Result.
-   */
+  /** Directory containing the loaded configuration file. */
   get CONFIG_PATH() {
     return configDirectory();
   },

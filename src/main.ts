@@ -1,9 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import 'reflect-metadata';
-/**
- * Executes `bootstrap`.
- * @returns {Promise<void>} Result.
- */
+
+/** Starts the HTTP health endpoint and the configured bridge instances. */
 async function bootstrap() {
   const { CONFIG } = await import('./config/config');
   const { AppModule } = await import('./app.module');
@@ -11,4 +9,5 @@ async function bootstrap() {
   app.enableShutdownHooks();
   await app.listen(CONFIG.http.port, CONFIG.http.host);
 }
+
 void bootstrap();

@@ -1,6 +1,6 @@
 # Docker deployment
 
-Create a writable local configuration directory. Cloud bridges need it to persist authentication files safely.
+Create a writable local configuration directory. The container runs as the local `UID:GID` from Compose so it can persist a private authentication file in that mount.
 
 ```yaml
 services:
@@ -13,4 +13,4 @@ services:
       - "3000:3000"
 ```
 
-Run `docker compose up -d`. Compose runs the container as the local `UID:GID`, so cloud-authentication files can be written back to the mounted `config/` directory. Export those values on systems where Docker does not provide them automatically. For bridges without browser authentication, the port can be removed when health checks run inside the Docker network. Use a fixed image version in production.
+Run `docker compose up -d`. Export `UID` and `GID` first on hosts where Compose does not provide those values automatically. The port can be removed when health checks run in the Docker network; Landroid authentication does not need a browser callback. Use a fixed image version in production.

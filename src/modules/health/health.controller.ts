@@ -1,13 +1,9 @@
 import { Controller, Get } from '@nestjs/common';
-/**
- * Executes `HealthController`.
- */
+
+/** Exposes a process-level liveness endpoint for Docker and orchestrators. */
 @Controller('health')
 export class HealthController {
-  /**
-   * Executes `getHealth`.
-   * @returns {{ status: string; name: string; version: string; uptime: number; }} Result.
-   */
+  /** Reports basic process metadata without checking vendor-cloud connectivity. */
   @Get() getHealth() {
     return {
       status: 'ok',

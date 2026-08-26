@@ -1,17 +1,7 @@
-/**
- * Executes `objectToMap`.
- * @param {unknown} value The value value.
- * @param {string} prefix The prefix value.
- * @returns {Map<string, string | number | boolean>} Result.
- */
+/** Flattens scalar object values to slash-separated MQTT-compatible paths. */
 export function objectToMap(value: unknown, prefix = ''): Map<string, string | number | boolean> {
   const result = new Map<string, string | number | boolean>();
-  /**
-   * Executes this implementation.
-   * @param {unknown} current The current value.
-   * @param {string} path The path value.
-   * @returns {void} Result.
-   */
+  /** Visits arrays and records recursively until a scalar is found. */
   const visit = (current: unknown, path: string): void => {
     if (Array.isArray(current)) {
       current.forEach((entry, index) => visit(entry, `${path}/${index}`));
@@ -27,11 +17,8 @@ export function objectToMap(value: unknown, prefix = ''): Map<string, string | n
   visit(value, prefix);
   return result;
 }
-/**
- * Executes `parseObject`.
- * @param {T} value The value value.
- * @returns {T} Result.
- */
+
+/** Preserves a value while giving callers a named generic inference point. */
 export function parseObject<T>(value: T): T {
   return value;
 }

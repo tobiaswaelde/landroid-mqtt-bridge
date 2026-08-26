@@ -43,8 +43,10 @@ instances:
 Example command:
 
 ```bash
-mosquitto_pub -h mqtt.example.net -t 'home/landroid/garden/mowers/20213026710100887292/set/json' -m '{"cmd":1}'
+mosquitto_pub -h mqtt.example.net -t 'home/landroid/garden/mowers/20213026710100887292/set/json' -m '{"cmd":"start"}'
 ```
+
+Commands use readable strings: `start`, `pause` (or `stop`), `home`, `zone_training`, `lock`, and `unlock`. The bridge rejects numeric command codes at the MQTT boundary and converts these names for the vendor cloud. See the [MQTT contract](https://tobiaswaelde.github.io/landroid-mqtt-bridge/mqtt) for every published topic, command parameters, and the status/error-code enums.
 
 ## Documentation
 
@@ -53,4 +55,5 @@ mosquitto_pub -h mqtt.example.net -t 'home/landroid/garden/mowers/20213026710100
 - [Authentication](https://tobiaswaelde.github.io/landroid-mqtt-bridge/authentication)
 - [MQTT contract](https://tobiaswaelde.github.io/landroid-mqtt-bridge/mqtt)
 - [Docker deployment](https://tobiaswaelde.github.io/landroid-mqtt-bridge/deployment)
+- [Troubleshooting](https://tobiaswaelde.github.io/landroid-mqtt-bridge/troubleshooting)
 - [WLED MQTT Bridge for local lighting](https://tobiaswaelde.github.io/wled-mqtt-bridge/)

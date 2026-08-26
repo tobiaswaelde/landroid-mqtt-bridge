@@ -1,7 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
-  <title>Landroid MQTT Bridge</title>
-  <rect width="128" height="128" rx="30" fill="#166534"/>
-  <path fill="#86efac" d="M64 16c22 22 34 40 34 58 0 21-15 38-34 38S30 95 30 74c0-18 12-36 34-58Z"/>
-  <path fill="#14532d" d="M64 34v61M45 56l19 19 19-19" stroke="#14532d" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="45" cy="96" r="8" fill="#fff"/><circle cx="83" cy="96" r="8" fill="#fff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Landroid MQTT Bridge</title>
+  <desc id="desc">A robotic lawn mower connected to three MQTT signal nodes.</desc>
+  <defs>
+    <linearGradient id="grass" x1="112" y1="112" x2="400" y2="400" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#86efac"/>
+      <stop offset="1" stop-color="#22c55e"/>
+    </linearGradient>
+    <linearGradient id="mower" x1="136" y1="236" x2="376" y2="372" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f8fafc"/>
+      <stop offset="1" stop-color="#cbd5e1"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#052e16"/>
+  <path d="M96 378c61-59 112 37 182-38 53-57 85-11 138-58v126H96Z" fill="url(#grass)"/>
+  <path d="M151 309c0-56 45-101 101-101h8c56 0 101 45 101 101v41H151Z" fill="url(#mower)"/>
+  <path d="M174 309c0-43 35-78 78-78h8c43 0 78 35 78 78" fill="none" stroke="#94a3b8" stroke-linecap="round" stroke-width="18"/>
+  <path d="M211 294h90" stroke="#16a34a" stroke-linecap="round" stroke-width="18"/>
+  <circle cx="204" cy="356" r="34" fill="#0f172a"/>
+  <circle cx="308" cy="356" r="34" fill="#0f172a"/>
+  <circle cx="204" cy="356" r="13" fill="#86efac"/>
+  <circle cx="308" cy="356" r="13" fill="#86efac"/>
+  <path d="M298 153c34 0 62 28 62 62m-34-62c16 0 28 12 28 28" fill="none" stroke="#a7f3d0" stroke-linecap="round" stroke-width="14"/>
+  <circle cx="287" cy="216" r="13" fill="#f0fdf4"/>
+  <circle cx="391" cy="204" r="16" fill="#4ade80"/>
+  <circle cx="412" cy="260" r="11" fill="#86efac"/>
 </svg>
