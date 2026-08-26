@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3
+
+### Patch Changes
+
+- [`9671aa5`](https://github.com/tobiaswaelde/landroid-mqtt-bridge/commit/9671aa5804c1ebdebbc9719423ad3c6a56ac176e) Thanks [@tobiaswaelde](https://github.com/tobiaswaelde)! - Standardize configuration loading, formatting, and CI smoke testing.
+
 ## 0.1.2
 
 ### Patch Changes
