@@ -22,10 +22,6 @@ mqtt:
   clientId: landroid-mqtt-bridge
   username: mqtt-user
   password: change-me
-http:
-  port: 3000
-logging:
-  level: log
 instances:
   - id: garden
     topic: home/landroid/garden

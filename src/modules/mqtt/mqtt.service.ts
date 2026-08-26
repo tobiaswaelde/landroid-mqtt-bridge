@@ -79,6 +79,7 @@ export class MqttService implements MqttBridgeClient, OnModuleDestroy {
           }
   }
 }
+
 /** Matches the `+` and terminal `#` MQTT wildcards used by bridge subscriptions. */
 function matches(filter: string, topic: string) {
   const a = filter.split('/'),

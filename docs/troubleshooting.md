@@ -2,7 +2,7 @@
 
 ## The bridge stays disconnected
 
-1. Verify the local process first: `curl http://localhost:3000/health`.
+1. Verify the local process first: `curl http://localhost:${PORT:-3000}/health`.
 2. Subscribe to the full instance tree: `mosquitto_sub -t '<topic>/#' -v`.
 3. Confirm the vendor email, password, selected `cloud.type`, and container network access to the vendor cloud.
 4. Confirm every configured serial belongs to that account. A mower outside the explicit allowlist is intentionally ignored.
@@ -24,4 +24,4 @@
 
 ## Safe diagnostics
 
-Use `logging.level: debug` temporarily for connection diagnostics. Never include `config.yml`, `*.auth.json`, cloud sessions, tokens, or passwords in issues or logs.
+Use the bridge's container logs for connection diagnostics. Never include `config.yml`, `*.auth.json`, cloud sessions, tokens, or passwords in issues or logs.

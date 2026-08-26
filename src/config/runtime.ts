@@ -12,6 +12,7 @@ export const instanceSchema = z.object({
   enabled: z.boolean().default(true),
   topic: z.string().min(1),
 });
+
 export const commonSchema = z.object({
   mqtt: z.object({
     protocol: z.enum(['mqtt', 'mqtts']).default('mqtt'),
@@ -23,12 +24,6 @@ export const commonSchema = z.object({
     keepAliveSeconds: z.number().int().positive().default(30),
     reconnectDelayMs: z.number().int().positive().default(5000),
   }),
-  http: z
-    .object({ host: z.string().default('0.0.0.0'), port: z.number().int().positive().default(3000) })
-    .default({ host: '0.0.0.0', port: 3000 }),
-  logging: z
-    .object({ level: z.enum(['error', 'warn', 'log', 'debug', 'verbose']).default('log') })
-    .default({ level: 'log' }),
 });
 
 /** Resolves the configuration file from the environment, CLI, or default path. */
@@ -36,10 +31,12 @@ export function configFilePath() {
   const index = process.argv.indexOf('--config');
   return path.resolve(process.env.CONFIG_FILE ?? (index >= 0 ? process.argv[index + 1] : 'config/config.yml'));
 }
+
 /** Returns the directory that contains the resolved configuration file. */
 export function configDirectory() {
   return path.dirname(configFilePath());
 }
+
 /** Loads and validates YAML configuration against a Zod schema. */
 export function loadConfig<T extends z.ZodType>(schema: T): z.infer<T> {
   const file = configFilePath();

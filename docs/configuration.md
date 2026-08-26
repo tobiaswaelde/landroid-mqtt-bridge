@@ -8,11 +8,6 @@ All bridges use the same top-level shape:
 mqtt:
   host: mqtt.example.net
   clientId: landroid-mqtt-bridge
-http:
-  host: 0.0.0.0
-  port: 3000
-logging:
-  level: log
 instances:
   - id: unique-instance-name
     enabled: true
@@ -24,6 +19,8 @@ Keep this file private and out of Git. It contains both MQTT and vendor-account 
 
 ## Shared settings
 
+HTTP settings are environment variables: `HOST` defaults to `0.0.0.0`, `PORT` defaults to `3000`, and `CORS_ORIGIN` defaults to `*`. Dotenv loads `.env` from the working directory, while Docker Compose environment values take precedence.
+
 | Key | Required | Default | Description |
 | --- | --- | --- | --- |
 | `mqtt.protocol` | No | `mqtt` | MQTT transport: `mqtt` or `mqtts`. |
@@ -33,9 +30,6 @@ Keep this file private and out of Git. It contains both MQTT and vendor-account 
 | `mqtt.username` / `mqtt.password` | No | — | Optional broker credentials. |
 | `mqtt.keepAliveSeconds` | No | `30` | Positive MQTT keepalive interval. |
 | `mqtt.reconnectDelayMs` | No | `5000` | Positive delay between broker reconnect attempts. |
-| `http.host` | No | `0.0.0.0` | Health-endpoint bind address. |
-| `http.port` | No | `3000` | Health-endpoint port. |
-| `logging.level` | No | `log` | One of `error`, `warn`, `log`, `debug`, or `verbose`. |
 
 ## Account instances
 
@@ -62,10 +56,6 @@ mqtt:
   clientId: landroid-mqtt-bridge
   username: mqtt-user
   password: change-me
-http:
-  port: 3000
-logging:
-  level: log
 instances:
   - id: garden
     topic: home/landroid/garden

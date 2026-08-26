@@ -10,7 +10,7 @@ services:
     volumes:
       - ./config:/app/config
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:${PORT:-3000}"
 ```
 
 Run `docker compose up -d`. Export `UID` and `GID` first on hosts where Compose does not provide those values automatically. The port can be removed when health checks run in the Docker network; Landroid authentication does not need a browser callback. Use a fixed image version in production.

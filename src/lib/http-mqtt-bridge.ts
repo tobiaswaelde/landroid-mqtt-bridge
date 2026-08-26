@@ -8,6 +8,7 @@ export interface BridgeInstance {
   loop(time: number): void;
   destroy(): void;
 }
+
 /** Shared HTTP, polling, request-cancellation, and MQTT-subscription lifecycle for a bridge. */
 export abstract class HttpMqttBridge<T extends object> implements BridgeInstance {
   protected readonly api: AxiosInstance;
