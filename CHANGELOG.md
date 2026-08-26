@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2
+
+### Patch Changes
+
+- [`d38ec7a`](https://github.com/tobiaswaelde/landroid-mqtt-bridge/commit/d38ec7a18fff94d7b5b38811b68640370cfa18c8) Thanks [@tobiaswaelde](https://github.com/tobiaswaelde)! - Fix release and container publishing workflows to use the version tag passed to reusable jobs.
+
 ## 0.1.1
 
 ### Patch Changes
