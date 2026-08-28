@@ -41,9 +41,14 @@ Every path below is relative to `<topic>/mowers/<serial>/configuration/`. A path
 | `schedules/oneTime/{boundaryCut,durationMinutes}` | `cfg.sc.ots` | One-time mowing settings. |
 | `schedules/{primary,secondary}/<day>/{boundaryCut,durationMinutes,startTime}` | `cfg.sc.d`, `cfg.sc.dd` | Weekly schedule slots. |
 | `signalStrength` | `dat.rsi` | Vendor-reported radio signal strength. |
-| `statistics/{bladeWorkTime,distance,lawnPerimeter,mowerWorkTime}` | `dat.st` | Blade time, travelled distance, perimeter, and mower work time. |
+| `statistics/bladeTimeMinutes` | `dat.st.b` | Total blade operating time in minutes. |
+| `statistics/boundaryWireLengthMeters` | `dat.st.bl` | Boundary-wire length in metres. |
+| `statistics/distanceMeters` | `dat.st.d` | Total travelled distance in metres. |
+| `statistics/workingTimeMinutes` | `dat.st.wt` | Total mower operating time in minutes. |
 | `statusCode` | `dat.ls` | Raw vendor status code; see the enum below. |
 | `zoneIndex` | `dat.lz` | Last/current vendor zone index. |
+
+The older `statistics/{bladeWorkTime,distance,lawnPerimeter,mowerWorkTime}` topics remain available with the same values for existing consumers. Prefer the unit-bearing paths above for new automations.
 
 Unknown vendor fields remain only in `mowerdata`; this avoids silently assigning a public topic contract to every cloud field.
 

@@ -38,7 +38,13 @@ describe('mapConfigurationToMqtt', () => {
       'rain/detected': true,
       'rain/remainingMinutes': 12,
       signalStrength: -72,
+      'statistics/bladeTimeMinutes': 100,
+      'statistics/boundaryWireLengthMeters': 50,
+      'statistics/distance': 200,
+      'statistics/distanceMeters': 200,
+      'statistics/lawnPerimeter': 50,
       'statistics/mowerWorkTime': 300,
+      'statistics/workingTimeMinutes': 300,
       statusCode: 7,
     });
   });
