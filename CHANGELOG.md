@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.5
+
+### Patch Changes
+
+- [`2041de6`](https://github.com/tobiaswaelde/landroid-mqtt-bridge/commit/2041de6c0e530c0e86cdcb502e1ff7f6cc546f1b) Thanks [@tobiaswaelde](https://github.com/tobiaswaelde)! - Remove duplicate legacy MQTT statistics topics.
+
 ## 0.1.4
 
 ### Patch Changes
