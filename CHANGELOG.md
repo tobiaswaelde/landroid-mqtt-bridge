@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.4
+
+### Patch Changes
+
+- [`8cf870c`](https://github.com/tobiaswaelde/landroid-mqtt-bridge/commit/8cf870cc9d4f352b184b6a093693230e9471fbbd) Thanks [@tobiaswaelde](https://github.com/tobiaswaelde)! - Publish unit-bearing MQTT statistics for mower, blade, travel, and boundary-wire totals.
+
+- [`5358c24`](https://github.com/tobiaswaelde/landroid-mqtt-bridge/commit/5358c2462755431f6b45eda169a336cb68f291f7) Thanks [@tobiaswaelde](https://github.com/tobiaswaelde)! - Use a static app module import during bootstrap.
+
 ## 0.1.3
 
 ### Patch Changes
