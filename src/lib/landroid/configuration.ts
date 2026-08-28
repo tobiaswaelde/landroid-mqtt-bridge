@@ -104,13 +104,9 @@ function mapMowerTelemetry(data: Record<string, unknown> | undefined) {
     signalStrength: data.rsi,
     statistics: statistics
       ? withoutUndefined({
-          bladeWorkTime: statistics.b,
           bladeTimeMinutes: statistics.b,
           boundaryWireLengthMeters: statistics.bl,
-          distance: statistics.d,
           distanceMeters: statistics.d,
-          lawnPerimeter: statistics.bl,
-          mowerWorkTime: statistics.wt,
           workingTimeMinutes: statistics.wt,
         })
       : undefined,

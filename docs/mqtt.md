@@ -48,8 +48,6 @@ Every path below is relative to `<topic>/mowers/<serial>/configuration/`. A path
 | `statusCode` | `dat.ls` | Raw vendor status code; see the enum below. |
 | `zoneIndex` | `dat.lz` | Last/current vendor zone index. |
 
-The older `statistics/{bladeWorkTime,distance,lawnPerimeter,mowerWorkTime}` topics remain available with the same values for existing consumers. Prefer the unit-bearing paths above for new automations.
-
 Unknown vendor fields remain only in `mowerdata`; this avoids silently assigning a public topic contract to every cloud field.
 
 ## Commands

@@ -21,7 +21,9 @@ describe('mapConfigurationToMqtt', () => {
       },
     });
 
-    expect(Object.fromEntries(values)).toMatchObject({
+    const mqttValues = Object.fromEntries(values);
+
+    expect(mqttValues).toMatchObject({
       activityCode: 1,
       'battery/chargeCycles': 42,
       'battery/charging': true,
@@ -40,12 +42,13 @@ describe('mapConfigurationToMqtt', () => {
       signalStrength: -72,
       'statistics/bladeTimeMinutes': 100,
       'statistics/boundaryWireLengthMeters': 50,
-      'statistics/distance': 200,
       'statistics/distanceMeters': 200,
-      'statistics/lawnPerimeter': 50,
-      'statistics/mowerWorkTime': 300,
       'statistics/workingTimeMinutes': 300,
       statusCode: 7,
     });
+    expect(mqttValues).not.toHaveProperty('statistics/bladeWorkTime');
+    expect(mqttValues).not.toHaveProperty('statistics/distance');
+    expect(mqttValues).not.toHaveProperty('statistics/lawnPerimeter');
+    expect(mqttValues).not.toHaveProperty('statistics/mowerWorkTime');
   });
 });
