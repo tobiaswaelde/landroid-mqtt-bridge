@@ -21,7 +21,7 @@
   "dependencies": {
     "@nestjs/common": "^11.2.1",
     "@nestjs/core": "^11.2.1",
-    "@nestjs/platform-express": "^11.2.1",
+    "@nestjs/platform-express": "^11.2.3",
     "aws-iot-device-sdk": "^2.2.16",
     "axios": "^1.19.0",
     "dotenv": "^17.4.2",
